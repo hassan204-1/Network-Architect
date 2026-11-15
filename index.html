@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archisnet - مصمم الشبكات الذكي</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            background-color: #07090e;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        .dot-grid {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1.5px, transparent 1.5px);
+            background-size: 28px 28px;
+            cursor: grab;
+        }
+
+        .dot-grid:active {
+            cursor: grabbing;
+        }
+
+        @media print {
+            @page {
+                size: landscape;
+                margin: 5mm;
+            }
+
+            body {
+                background-color: #07090e !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                overflow: visible !important;
+            }
+
+            aside,
+            header,
+            button {
+                display: none !important;
+            }
+
+            main {
+                padding: 0 !important;
+                overflow: visible !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                height: 100vh !important;
+            }
+
+            #exportArea {
+                border: none !important;
+                box-shadow: none !important;
+                background-color: #07090e !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                transform: translate(0, 0) scale(0.62) !important;
+                position: relative !important;
+                top: 0 !important;
+                left: 0 !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col">
+
+    <!-- شريط العلوى (Navbar) - يتم تحديث اسمه برمجيّاً -->
+    <header class="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-[#0b0f17]">
+        <div class="flex items-center gap-2">
+            <span class="bg-[#0095ff] text-white text-xs font-bold px-2 py-1 rounded">A</span>
+            <h1 id="navbarProjectTitle" class="text-lg font-semibold tracking-wider text-white">Archisnet - Enterprise
+                Network Architect</h1>
+        </div>
+        <p class="text-xs text-gray-400">منصة هندسية ذكية لتصميم شبكات المؤسسات، حوكمة الأمان، وتوليد أوامر Cisco CLI
+        </p>
+    </header>
+
+    <!-- محتوى الصفحة الرئيسي -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- منطقة رسم الشبكة -->
+        <main id="canvasContainer"
+            class="flex-1 dot-grid relative flex items-center justify-center p-8 overflow-hidden select-none">
+
+            <!-- أزرار التحكم في التقريب والتحريك (Zoom & Center Controls) -->
+            <div
+                class="absolute bottom-6 left-6 z-40 bg-[#0b0f17]/90 border border-gray-700 rounded-xl p-1.5 flex items-center gap-1.5 shadow-2xl backdrop-blur">
+                <button onclick="zoomIn()"
+                    class="w-8 h-8 bg-[#131b2e] hover:bg-[#0095ff] text-white rounded-lg flex items-center justify-center text-base font-bold transition cursor-pointer shadow"
+                    title="تكبير المخطط">+</button>
+                <button onclick="zoomOut()"
+                    class="w-8 h-8 bg-[#131b2e] hover:bg-[#0095ff] text-white rounded-lg flex items-center justify-center text-base font-bold transition cursor-pointer shadow"
+                    title="تصغير المخطط">-</button>
+                <button onclick="resetZoomAndCenter()"
+                    class="px-3 h-8 bg-[#131b2e] hover:bg-gray-700 text-white rounded-lg flex items-center justify-center text-xs font-semibold transition cursor-pointer shadow">توسيط
+                    وإعادة ضبط</button>
+            </div>
+
+            <!-- رسالة التوجيه الابتدائية -->
+            <div id="placeholderMessage"
+                class="absolute border border-gray-800 bg-[#0b0f17]/80 backdrop-blur px-8 py-6 rounded-lg text-gray-400 text-xs text-center z-20">
+                حدد الخيارات في القائمة واضغط على "توليد المخطط وجدار الحماية" لعرض أجهزة المؤسسة هنا
+            </div>
+
+            <!-- حاوية المخطط القابلة للتحريك والسحب -->
+            <div id="exportArea"
+                class="hidden flex flex-col items-center gap-5 w-full max-w-5xl bg-[#07090e]/90 p-6 rounded-2xl absolute transition-transform duration-75 ease-out cursor-grab active:cursor-grabbing"
+                style="transform-origin: center center;">
+                <div id="topologyContainer" class="flex flex-col items-center gap-5 w-full pointer-events-auto">
+                    <!-- سيتم تعبئتها برمجياً -->
+                </div>
+            </div>
+        </main>
+
+        <!-- القائمة الجانبية (مدخلات النموذج والموديلات المتقدمة) -->
+        <aside class="w-96 bg-[#0b0f17] border-r border-gray-800 p-6 flex flex-col gap-3.5 overflow-y-auto z-30">
+            <div>
+                <label class="block text-xs text-gray-300 mb-1">اسم المشروع / الفرع <span
+                        class="text-rose-500">*</span></label>
+                <input type="text" id="projectName" value="الفرع الرئيسي - الرياض"
+                    oninput="updateNavbarTitle(this.value)" required
+                    class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#0095ff]">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[11px] text-gray-300 mb-1">موديل الراوتر</label>
+                    <select id="routerModel"
+                        class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#0095ff]">
+                        <option>Cisco ISR 4321</option>
+                        <option>Cisco ASR 1000</option>
+                        <option>Cisco ISR 1100</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-300 mb-1">موديل الفايروال</label>
+                    <select id="firewallModel"
+                        class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#0095ff]">
+                        <option>Cisco ASA 5506-X</option>
+                        <option>Palo Alto PA-220</option>
+                        <option>Fortinet FortiGate 60F</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs text-gray-300 mb-1">نطاق عناوين الشبكة (Base IP Subnet)</label>
+                <input type="text" id="baseIP" value="192.168.10.0"
+                    class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#0095ff]">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[11px] text-gray-300 mb-1">عدد الأقسام</label>
+                    <input type="number" id="numRooms" value="3" min="1" max="5" onchange="updateDepartmentInputs()"
+                        oninput="updateDepartmentInputs()"
+                        class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#0095ff]">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-300 mb-1">أجهزة لكل قسم</label>
+                    <input type="number" id="numDevices" value="3" min="1" max="8"
+                        class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#0095ff]">
+                </div>
+            </div>
+
+            <!-- حقول تسمية الأقسام الديناميكية -->
+            <div class="flex flex-col gap-2 bg-[#131b2e]/60 p-2.5 rounded-lg border border-gray-800">
+                <span class="text-[11px] font-bold text-gray-400">تسمية الأقسام (Departments):</span>
+                <div id="departmentNamesContainer" class="grid grid-cols-2 gap-2">
+                    <!-- سيتم توليدها برمجياً بناءً على عدد الأقسام -->
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-300 mb-1">نوع كابل الربط (Cabling Media)</label>
+                <select id="cableType"
+                    class="w-full bg-[#131b2e] border border-gray-700 rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#0095ff]">
+                    <option>Cat6 Gigabit Ethernet</option>
+                    <option>Cat6a Shielded (STP)</option>
+                    <option>Single-Mode Fiber Optic</option>
+                    <option>Multi-Mode Fiber Optic (OM4)</option>
+                </select>
+            </div>
+            <button onclick="generateTopology()"
+                class="w-full bg-[#0095ff] hover:bg-[#007acc] text-white text-sm font-medium py-2 rounded-md transition duration-200 shadow-lg cursor-pointer">
+                توليد المخطط وجدار الحماية
+            </button>
+
+            <!-- أدوات مشروع التخرج المتقدمة -->
+            <div id="advancedTools" class="hidden flex flex-col gap-2 pt-2 border-t border-gray-800">
+                <span class="text-[11px] font-bold text-gray-400">أدوات مشروع التخرج المتقدمة:</span>
+
+                <button onclick="openSubnetCalculator()"
+                    class="w-full bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-medium py-2 rounded-md transition shadow cursor-pointer flex items-center justify-center gap-1.5">
+                    📊 حاسبة الـ Subnetting الرياضية (CIDR)
+                </button>
+
+                <button onclick="downloadMasterCLI()"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium py-2 rounded-md transition shadow cursor-pointer flex items-center justify-center gap-1.5">
+                    📥 تحميل ملف التكوين الشامل (.txt)
+                </button>
+
+                <button onclick="openSecurityAudit()"
+                    class="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium py-2 rounded-md transition shadow cursor-pointer flex items-center justify-center gap-1.5">
+                    🛡️ فحص أمان وثغرات الشبكة (AI Audit)
+                </button>
+
+                <button onclick="exportToPDF()"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium py-2 rounded-md transition shadow cursor-pointer flex items-center justify-center gap-1.5">
+                    📄 حفظ / طباعة التقرير (PDF)
+                </button>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- نافذة منبثقة (Modal) للعرض -->
+    <div id="modalOverlay"
+        class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-[#0b0f17] border border-gray-700 w-full max-w-2xl rounded-2xl p-6 flex flex-col gap-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+                <h3 id="modalTitle" class="text-sm font-bold text-white">العنوان</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-sm cursor-pointer">✕
+                    إغلاق</button>
+            </div>
+            <div id="modalBody"
+                class="bg-[#131b2e] border border-gray-800 p-4 rounded-xl text-xs font-mono text-gray-200 max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                محتوى النافذة...
+            </div>
+            <div class="flex justify-end">
+                <button onclick="closeModal()"
+                    class="bg-gray-700 hover:bg-gray-600 text-white text-xs px-4 py-2 rounded-md transition cursor-pointer">تم</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="script.js"></script>
+</body>
+
+</html>
